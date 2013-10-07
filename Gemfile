@@ -2,6 +2,7 @@ source :rubygems
 
 group :development, :test do
   gem 'puppetlabs_spec_helper', :require => false
+  gem 'coveralls', :require => false
 end
 
 if puppetversion = ENV['PUPPET_GEM_VERSION']
