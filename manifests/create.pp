@@ -33,7 +33,9 @@ define nssdb::create (
   $dbname = $title,
   $owner_id,
   $group_id,
+  $mode = 0600,
   $password,
+  $password_file = "$basedir/$dbname/password.conf",
   $basedir = '/etc/pki',
   $cacert = '/etc/pki/certs/CA/ca.crt',
   $canickname = 'CA',
@@ -43,13 +45,13 @@ define nssdb::create (
 
   file {"${basedir}/${dbname}":
     ensure  => directory,
-    mode    => 0600,
+    mode    => $mode,
     owner   => $owner_id,
     group   => $group_id,
   }
-  file {"${basedir}/${dbname}/password.conf":
+  file {"${password_file}":
     ensure  => file,
-    mode    => 0600,
+    mode    => $mode,
     owner   => $owner_id,
     group   => $group_id,
     content => $password,
@@ -59,21 +61,21 @@ define nssdb::create (
   }
   file { ["${basedir}/${dbname}/cert8.db", "${basedir}/${dbname}/key3.db", "${basedir}/${dbname}/secmod.db"] :
     ensure  => file,
-    mode    => 0600,
+    mode    => $mode,
     owner   => $owner_id,
     group   => $group_id,
     require => [
-        File["${basedir}/${dbname}/password.conf"],
+        File["${password_file}"],
         Exec['create_nss_db'],
     ],
   }
 
   exec {'create_nss_db':
-    command => "/usr/bin/certutil -N -d ${basedir}/${dbname} -f ${basedir}/${dbname}/password.conf",
+    command => "/usr/bin/certutil -N -d ${basedir}/${dbname} -f ${password_file}",
     creates => ["${basedir}/${dbname}/cert8.db", "${basedir}/${dbname}/key3.db", "${basedir}/${dbname}/secmod.db"],
     require => [
         File["${basedir}/${dbname}"],
-        File["${basedir}/${dbname}/password.conf"],
+        File["${password_file}"],
         Package['nss-tools'],
     ],
       notify => [

@@ -29,25 +29,26 @@ define nssdb::add_cert_and_key (
   $nickname,
   $cert,
   $key,
-  $basedir = '/etc/pki'
+  $basedir = '/etc/pki',
+  $password_file = "${basedir}/${dbname}/password.conf",
 ) {
   package { 'openssl': ensure => present }
 
   exec {'generate_pkcs12':
-    command => "/usr/bin/openssl pkcs12 -export -in $cert -inkey $key -password 'file:${basedir}/${dbname}/password.conf' -out '${basedir}/${dbname}/$dbname.p12' -name $nickname",
+    command => "/usr/bin/openssl pkcs12 -export -in $cert -inkey $key -password 'file:${password_file}' -out '${basedir}/${dbname}/$dbname.p12' -name $nickname",
     require => [
-        File["${basedir}/${dbname}/password.conf"],
+        File["${password_file}"],
         File["${basedir}/${dbname}/cert8.db"],
         Package['openssl'],
     ],
     before => Exec['load_pkcs12'],
     notify => Exec['load_pkcs12'],
-    subscribe => File["${basedir}/${dbname}/password.conf"],
+    subscribe => File["${password_file}"],
     refreshonly => true,
   }
 
   exec {'load_pkcs12':
-    command => "/usr/bin/pk12util -i '${basedir}/${dbname}/$dbname.p12' -d '${basedir}/${dbname}' -w '${basedir}/${dbname}/password.conf' -k '${basedir}/${dbname}/password.conf'",
+    command => "/usr/bin/pk12util -i '${basedir}/${dbname}/$dbname.p12' -d '${basedir}/${dbname}' -w '${password_file}' -k '${password_file}'",
     require => [
         Exec["generate_pkcs12"],
         Package['nss-tools'],
